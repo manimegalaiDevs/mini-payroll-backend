@@ -1,6 +1,6 @@
 const knex = require('knex');
 require('dotenv').config();
-const config = require('./knexfile').development;
+const config = require('../knexfile').development;
 
 const db = knex(config);
 

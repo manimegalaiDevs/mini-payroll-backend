@@ -1,12 +1,23 @@
 const express = require('express');
-const db = require('./db'); // your Knex instance
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+
+const db = require('./config/db'); // your Knex instance
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
-app.get('/', (req, res) => res.send('OK'));
+// Allow frontend with cookies
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+}));
 
-// ✅ DB Health Check
+const authRoutes = require('./routes/auth');
+app.use('/api', authRoutes);
+
+// DB Health Check
 app.get('/health', async (req, res) => {
     try {
         await db.raw('SELECT 1'); // simple query to check DB connection
