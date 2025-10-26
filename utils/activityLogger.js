@@ -10,13 +10,10 @@ module.exports = function activityLogger(req, res, next) {
 
             if (recordId && action && table && req.user) {
                 logActivity({
-                    table_menu_name: table,
-                    record_id: recordId,
-                    action: action,
-                    user_id: req.user.id,
-                    shift_id: req.user.shift_id,
-                    business_centre_id: req.user.business_centre_id,
-                    status: true
+                    user_detail_id: req.user_detail_id || null,
+                    action_table_id: recordId,
+                    do_action: action,
+                    action_table: table,
                 });
             }
         }

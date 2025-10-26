@@ -1,4 +1,4 @@
-const db = require('../config/db.cofig');
+const db = require('../config/db');
 
 // Create
 const createItem = async (items) => {
@@ -10,10 +10,10 @@ const createItem = async (items) => {
     const skipped = [];
 
     for (const item of items) {
-        const { dropdown_type, item_name, filter_by = null } = item;
+        const { dropdown_type, item_value, filter_by = null } = item;
 
-        const exists = await db('dropdownitems')
-            .where({ dropdown_type, item_name })
+        const exists = await db('dropdown_item')
+            .where({ dropdown_type, item_value })
             .andWhere(function () {
                 if (filter_by === null) {
                     this.whereNull('filter_by');
@@ -26,8 +26,8 @@ const createItem = async (items) => {
         if (exists) {
             skipped.push(item);
         } else {
-            const [created] = await db('dropdownitems')
-                .insert({ dropdown_type, item_name, filter_by })
+            const [created] = await db('dropdown_item')
+                .insert({ dropdown_type, item_value, filter_by })
                 .returning('*');
 
             inserted.push(created);
@@ -48,13 +48,13 @@ const createItem = async (items) => {
 
 // Get (with optional filter_by)
 const getDropdownItemsByFilters = async (filters = {}) => {
-    const query = db('dropdownitems').select('*');
+    const query = db('dropdown_item').select('*');
 
     if (filters.dropdown_type) {
         query.where('dropdown_type', filters.dropdown_type);
     }
-    if (filters.item_name) {
-        query.andWhere('item_name', filters.item_name);
+    if (filters.item_value) {
+        query.andWhere('item_value', filters.item_value);
     }
     if (filters.filter_by) {
         query.andWhere('filter_by', filters.filter_by);
@@ -66,12 +66,12 @@ const getDropdownItemsByFilters = async (filters = {}) => {
 
 
 const getAllItems = async ({ skip, take }) => {
-    const items = await db('dropdownitems')
+    const items = await db('dropdown_item')
         .select('*')
         .offset(skip)
         .limit(take);
 
-    const totalRow = await db('dropdownitems').count('id as count').first();
+    const totalRow = await db('dropdown_item').count('id as count').first();
 
     return {
         items,
@@ -84,12 +84,12 @@ const getAllItems = async ({ skip, take }) => {
 
 // Update
 const updateItem = async (id, data) => {
-    return await db('dropdownitems').where({ id }).update(data).returning('*');
+    return await db('dropdown_item').where({ id }).update({ ...data, updated_at: db.fn.now() }).returning('*');
 };
 
 // Delete
 const deleteItem = async (id) => {
-    return await db('dropdownitems').where({ id }).del();
+    return await db('dropdown_item').where({ id }).del();
 };
 
 

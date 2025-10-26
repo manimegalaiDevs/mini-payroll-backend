@@ -1,22 +1,36 @@
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
-const dropdownService = require('../../service/dropdown');
-const { responseHandlers } = require('../../utils/response');
-const activityLogger = require('../../utils/activitylogger');
-const authenticateToken = require('../../config/auth');
+const dropdownService = require('../services/dropdown');
+const { responseHandlers } = require('../utils/response');
+const activityLogger = require('../utils/activitylogger');
+const authenticateToken = require('../config/authMiddleware');
 
 
 // Shared Joi validation schema
 const schema = Joi.object({
     id: Joi.number().integer().optional(),
-    dropdown_type: Joi.string().optional(),
-    item_name: Joi.string().optional(),
+    dropdown_type: Joi.string().required(),
+    item_value: Joi.string().required(),
     filter_by: Joi.string().optional()
 });
 
+const itemSchema = Joi.object({
+    dropdown_type: Joi.string().required(),
+    item_value: Joi.string().required(),
+    filter_by: Joi.string().allow(null),
+});
+
+const schema2 = Joi.alternatives().try(
+    itemSchema,
+    Joi.array().items(itemSchema)
+);
+
 router.post('/create', authenticateToken, activityLogger, async (req, res) => {
-    const { error } = schema.validate(req.body);
+    if (req.user.user_role !== 'SUPER_ADMIN') {
+        return res.status(403).json(responseHandlers.failure('Forbidden: Super Admins only'));
+    }
+    const { error } = schema2.validate(req.body);
     if (error) {
         return res.status(400).json(responseHandlers.failure(error.details[0].message));
     }
@@ -28,7 +42,7 @@ router.post('/create', authenticateToken, activityLogger, async (req, res) => {
             res.locals.recordId = insertedId;
         }
         res.locals.action = 'create';
-        res.locals.table = 'dropdown';
+        res.locals.table = 'dropdown_item';
 
         return res.status(201).json(({
             inserted: result.inserted,
@@ -104,7 +118,7 @@ router.put('/update', authenticateToken, activityLogger, async (req, res) => {
         const updated = await dropdownService.updateItem(value.id, req.body);
         res.locals.recordId = value.id;
         res.locals.action = 'update';
-        res.locals.table = 'dropdown';
+        res.locals.table = 'dropdown_item';
 
         return res.status(200).json(responseHandlers.update(value.id));
     } catch (err) {
@@ -129,8 +143,7 @@ router.delete('/delete', authenticateToken, activityLogger, async (req, res) => 
 
         res.locals.recordId = value.id;
         res.locals.action = 'delete';
-        res.locals.table = 'dropdown';
-
+        res.locals.table = 'dropdown_item';
         return res.status(200).json(responseHandlers.delete(value.id));
     } catch (err) {
         console.error(err);

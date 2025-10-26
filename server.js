@@ -16,6 +16,8 @@ app.use(cors({
 
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
+const dropdownRoutes = require('./routes/DropdownRoute');
+app.use('/api/dropdown', dropdownRoutes);
 
 // DB Health Check
 app.get('/health', async (req, res) => {

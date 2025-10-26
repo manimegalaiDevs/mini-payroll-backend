@@ -7,7 +7,6 @@ const { JWT_SECRET, JWT_EXPIRES_IN, COOKIE_NAME, COOKIE_OPTIONS } = require('../
 
 // User login
 router.post('/login', async (req, res) => {
-
     try {
         const { login_user_id, password } = req.body;
 
@@ -56,6 +55,3 @@ router.post('/logout', (req, res) => {
 });
 
 module.exports = router;
-
-
-// User registration

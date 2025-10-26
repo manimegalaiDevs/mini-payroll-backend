@@ -1,4 +1,4 @@
-const db = require('../config/db.config'); // Ensure this path is correct
+const db = require('../config/db'); // Ensure this path is correct
 
 // Create new user activity record
 const createUserActivity = async (activityData) => {
