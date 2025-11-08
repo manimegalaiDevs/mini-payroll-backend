@@ -18,6 +18,10 @@ const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
 const dropdownRoutes = require('./routes/DropdownRoute');
 app.use('/api/dropdown', dropdownRoutes);
+const staffRoutes = require('./routes/Staff');
+app.use('/api/staff', staffRoutes);
+const salaryRoutes = require('./routes/StaffSalary');
+app.use('/api/salary', salaryRoutes);
 
 // DB Health Check
 app.get('/health', async (req, res) => {

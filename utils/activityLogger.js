@@ -8,9 +8,10 @@ module.exports = function activityLogger(req, res, next) {
             const action = res.locals.action;
             const table = res.locals.table;
 
+
             if (recordId && action && table && req.user) {
                 logActivity({
-                    user_detail_id: req.user_detail_id || null,
+                    user_detail_id: req.user.id || null,
                     action_table_id: recordId,
                     do_action: action,
                     action_table: table,

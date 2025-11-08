@@ -1,82 +1,65 @@
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
-const dropdownService = require('../services/dropdown');
+const staffService = require('../services/staff');
 const { responseHandlers } = require('../utils/response');
 const activityLogger = require('../utils/activitylogger');
 const authenticateToken = require('../config/authMiddleware');
 
-
-// Shared Joi validation schema
-const schema = Joi.object({
-    id: Joi.number().integer().optional(),
-    dropdown_type: Joi.string().required(),
-    item_value: Joi.string().required(),
-    filter_by: Joi.string().optional()
+// Validation schema
+const staffSchema = Joi.object({
+    first_name: Joi.string().max(75).required(),
+    last_name: Joi.string().max(75).allow(null, ''),
+    NIC: Joi.string().max(15).required(),
+    employee_no: Joi.string().max(15).required(),
+    contact_no: Joi.string().max(60).required(),
+    province: Joi.string().max(60).required(),
+    divisional_secretariat: Joi.string().max(60).required(),
+    district: Joi.string().max(150).required(),
 });
 
-const itemSchema = Joi.object({
-    dropdown_type: Joi.string().required(),
-    item_value: Joi.string().required(),
-    filter_by: Joi.string().allow(null),
-});
-
-const schema2 = Joi.alternatives().try(
-    itemSchema,
-    Joi.array().items(itemSchema)
-);
-
+// CREATE STAFF (Super Admin only)
 router.post('/create', authenticateToken, activityLogger, async (req, res) => {
     if (req.user.user_role !== 'SUPER_ADMIN') {
         return res.status(403).json(responseHandlers.failure('Forbidden: Super Admins only'));
     }
-    const { error } = schema2.validate(req.body);
+
+    const { error } = staffSchema.validate(req.body);
     if (error) {
         return res.status(400).json(responseHandlers.failure(error.details[0].message));
     }
 
     try {
-        const result = await dropdownService.createItem(req.body);
-        const insertedId = result.inserted?.[0]?.id || null;
-        if (insertedId) {
-            res.locals.recordId = insertedId;
-        }
+        const created = await staffService.createStaff(req.body);
+        res.locals.recordId = created.id;
         res.locals.action = 'create';
-        res.locals.table = 'dropdown_item';
-
-        return res.status(201).json(({
-            inserted: result.inserted,
-            skipped: result.skipped,
-            message: result.message
-        }));
+        res.locals.table = 'staff_detail';
+        return res.status(201).json(responseHandlers.create(created));
     } catch (err) {
-        console.error(err);
-        return res.status(500).json(responseHandlers.failure(err.message));
+        return res.status(400).json(responseHandlers.failure(err.message));
     }
 });
 
-router.get('/get', async (req, res) => {
-    const { error, value } = schema.validate(req.query);
-    if (error) {
-        return res.status(400).json(responseHandlers.failure(error.details[0].message));
-    }
-
+// FETCH ALL STAFF (no pagination)
+router.get('/getall', async (req, res) => {
     try {
-        const items = await dropdownService.getDropdownItemsByFilters(value);
+        // Based on req user, will send different data in future
+        const items = await staffService.getAllStaff();
         if (!items || items.length === 0) {
             return res.status(200).json(responseHandlers.empty());
         }
         return res.status(200).json(responseHandlers.readAll(items));
     } catch (err) {
-        console.error(err);
         return res.status(500).json(responseHandlers.failure(err.message));
     }
 });
 
-router.get('/getall', async (req, res) => {
+// FETCH STAFF WITH PAGINATION
+router.get('/get', async (req, res) => {
+    // Based on req user, will send different data in future
     const paginationSchema = Joi.object({
         skip: Joi.number().integer().min(0).optional(),
-        take: Joi.number().integer().min(1).optional()
+        take: Joi.number().integer().min(1).optional(),
     });
 
     const { error, value } = paginationSchema.validate(req.query);
@@ -85,11 +68,10 @@ router.get('/getall', async (req, res) => {
     }
 
     const skip = value.skip ?? 0;
-    const take = value.take ?? 9;
+    const take = value.take ?? 10;
 
     try {
-        const result = await dropdownService.getAllItems({ skip, take });
-
+        const result = await staffService.getStaffPaginated({ skip, take });
         if (!result.items || result.items.length === 0) {
             return res.status(200).json(responseHandlers.empty());
         }
@@ -98,35 +80,35 @@ router.get('/getall', async (req, res) => {
             ...responseHandlers.readAll(result.items),
             total: result.total,
             skip: result.skip,
-            take: result.take
+            take: result.take,
         });
     } catch (err) {
-        console.error(err);
         return res.status(500).json(responseHandlers.failure(err.message));
     }
 });
 
+// UPDATE STAFF (Super Admin only)
 router.put('/update', authenticateToken, activityLogger, async (req, res) => {
     if (req.user.user_role !== 'SUPER_ADMIN') {
         return res.status(403).json(responseHandlers.failure('Forbidden: Super Admins only'));
     }
-    const schema = Joi.object({ id: Joi.number().integer().required() });
-    const { error, value } = schema.validate(req.query); // validate query param id
 
+    const schema = Joi.object({ id: Joi.number().integer().required() });
+    const { error, value } = schema.validate(req.query);
     if (error) {
         return res.status(400).json(responseHandlers.failure(error.details[0].message));
     }
 
     try {
-        const updated = await dropdownService.updateItem(value.id, req.body);
+        const updated = await staffService.updateStaff(value.id, req.body);
+
         res.locals.recordId = value.id;
         res.locals.action = 'update';
-        res.locals.table = 'dropdown_item';
+        res.locals.table = 'staff_detail';
 
-        return res.status(200).json(responseHandlers.update(value.id));
+        return res.status(200).json(responseHandlers.update(updated));
     } catch (err) {
-        console.error(err);
-        return res.status(500).json(responseHandlers.failure(err.message));
+        return res.status(400).json(responseHandlers.failure(err.message));
     }
 });
 
@@ -134,25 +116,25 @@ router.delete('/delete', authenticateToken, activityLogger, async (req, res) => 
     if (req.user.user_role !== 'SUPER_ADMIN') {
         return res.status(403).json(responseHandlers.failure('Forbidden: Super Admins only'));
     }
-    const schema = Joi.object({ id: Joi.number().integer().required() });
-    const { error, value } = schema.validate(req.query); // validate query param id
 
+    const schema = Joi.object({ id: Joi.number().integer().required() });
+    const { error, value } = schema.validate(req.query);
     if (error) {
         return res.status(400).json(responseHandlers.failure(error.details[0].message));
     }
 
     try {
-        const deleted = await dropdownService.deleteItem(value.id);
+        const deleted = await staffService.deleteStaff(value.id);
         if (!deleted) {
-            return res.status(404).json(responseHandlers.failure('Item not found or already deleted'));
+            return res.status(404).json(responseHandlers.failure('Staff not found or already deleted'));
         }
 
         res.locals.recordId = value.id;
         res.locals.action = 'delete';
-        res.locals.table = 'dropdown_item';
+        res.locals.table = 'staff_detail';
+
         return res.status(200).json(responseHandlers.delete(value.id));
     } catch (err) {
-        console.error(err);
         return res.status(500).json(responseHandlers.failure(err.message));
     }
 });
