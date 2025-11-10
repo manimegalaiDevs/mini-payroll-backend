@@ -15,12 +15,11 @@ router.post('/login', async (req, res) => {
 
         const user = await db('user_detail').where({ login_user_id }).first();
 
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        // Combine user not found and invalid password for security
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ message: 'Invalid credentials', loggedIn: false });
+        }
 
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) return res.status(401).json({ message: 'Invalid credentials' });
-
-        // Prepare JWT payload
         const tokenPayload = {
             id: user.id,
             login_user_id: user.login_user_id,
@@ -28,14 +27,12 @@ router.post('/login', async (req, res) => {
             staff_detail_id: user.staff_detail_id,
         };
 
-        // Sign JWT
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-
-        // Send JWT in HTTP-only cookie
         res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
 
         return res.status(200).json({
             message: 'Login successful',
+            loggedIn: true,
             user: {
                 id: user.id,
                 login_user_id: user.login_user_id,
@@ -45,7 +42,40 @@ router.post('/login', async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ message: 'Internal server error', loggedIn: false });
+    }
+});
+
+// Validate user session
+router.get('/valid-user', async (req, res) => {
+    try {
+        const token = req.cookies[COOKIE_NAME];
+        if (!token) {
+            return res.status(401).json({ validUser: false });
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // verify user still exists
+        const user = await db('user_detail').where({ id: decoded.id }).first();
+        if (!user) {
+            return res.status(401).json({ validUser: false });
+        }
+
+        return res.status(200).json({
+            message: 'Login successful',
+            loggedIn: true,
+            user: {
+                id: user.id,
+                login_user_id: user.login_user_id,
+                user_role: user.user_role,
+                staff_detail_id: user.staff_detail_id,
+            },
+        });
+    } catch (error) {
+        console.error('Valid user check error:', error);
+        return res.status(500).json({ message: 'Internal server error', loggedIn: false });
     }
 });
 

@@ -4,7 +4,7 @@ const Joi = require('joi');
 const salaryService = require('../services/salaryDetail');
 const authenticateToken = require('../config/authMiddleware');
 const { responseHandlers } = require('../utils/response');
-const activityLogger = require('../utils/activitylogger');
+const activityLogger = require('../utils/activityLogger');
 
 // Only Admins can modify
 const adminOnly = (req, res, next) => {

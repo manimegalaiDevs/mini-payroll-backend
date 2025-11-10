@@ -3,7 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const dropdownService = require('../services/dropdown');
 const { responseHandlers } = require('../utils/response');
-const activityLogger = require('../utils/activitylogger');
+const activityLogger = require('../utils/activityLogger');
 const authenticateToken = require('../config/authMiddleware');
 
 

@@ -3,7 +3,7 @@ const router = express.Router();
 const Joi = require('joi');
 const staffService = require('../services/staff');
 const { responseHandlers } = require('../utils/response');
-const activityLogger = require('../utils/activitylogger');
+const activityLogger = require('../utils/activityLogger');
 const authenticateToken = require('../config/authMiddleware');
 
 // Validation schema
