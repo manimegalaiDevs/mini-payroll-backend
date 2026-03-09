@@ -1,4 +1,4 @@
-const { ROLES } = require('./AppRoleDetails');
+// const { ROLES } = require('./AppRoleDetails');
 
 function checkRole(allowedRoles = []) {
     return (req, res, next) => {

@@ -8,10 +8,17 @@ const authenticateToken = require('../config/authMiddleware');
 
 
 // Shared Joi validation schema
-const schema = Joi.object({
+// const schema = Joi.object({
+//     id: Joi.number().integer().optional(),
+//     dropdown_type: Joi.string().required(),
+//     item_value: Joi.string().required(),
+//     filter_by: Joi.string().optional()
+// });
+
+const fetchSchema = Joi.object({
     id: Joi.number().integer().optional(),
     dropdown_type: Joi.string().required(),
-    item_value: Joi.string().required(),
+    item_value: Joi.string().optional(),
     filter_by: Joi.string().optional()
 });
 
@@ -56,7 +63,7 @@ router.post('/create', authenticateToken, activityLogger, async (req, res) => {
 });
 
 router.get('/get', async (req, res) => {
-    const { error, value } = schema.validate(req.query);
+    const { error, value } = fetchSchema.validate(req.query);
     if (error) {
         return res.status(400).json(responseHandlers.failure(error.details[0].message));
     }
@@ -118,7 +125,12 @@ router.put('/update', authenticateToken, activityLogger, async (req, res) => {
     }
 
     try {
-        const updated = await dropdownService.updateItem(value.id, req.body);
+        const itemExists = await dropdownService.getItemById(value.id);
+        if (!itemExists) {
+            return res.status(404).json(responseHandlers.failure('Item not found'));
+        }
+
+        await dropdownService.updateItem(value.id, req.body);
         res.locals.recordId = value.id;
         res.locals.action = 'update';
         res.locals.table = 'dropdown_item';

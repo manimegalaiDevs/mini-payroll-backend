@@ -12,21 +12,22 @@ const userSchema = Joi.object({
         .required(),
     // Password: at least 8 chars, must contain letters, numbers, and special characters
     password: Joi.string()
-        .pattern(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{8,}$/)
-        .max(255)
+        .alphanum() // Ensures only a-z, A-Z, and 0-9
+        .min(8)
+        .max(25)
         .required()
         .messages({
-            'string.pattern.base':
-                'Password must contain at least 8 characters, including letters, numbers, and a special character.',
+            'string.alphanum': 'Password must only contain letters and numbers.',
+            'string.min': 'Password must be at least 8 characters long.',
         }),
     user_role: Joi.string() // User role (limited to valid roles)
         .valid(...ROLE_KEYS)
         .max(30)
         .default('STAFF_USER'),
     status: Joi.string()    // Status options
-        .valid('Active', 'Deactive')
+        .valid('active', 'inactive')
         .max(30)
-        .default('Active'),
+        .default('active'),
     created_at: Joi.date().optional(),
     updated_at: Joi.date().optional(),
 });

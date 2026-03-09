@@ -23,6 +23,9 @@ app.use('/api/staff', staffRoutes);
 const salaryRoutes = require('./routes/StaffSalary');
 app.use('/api/salary', salaryRoutes);
 
+const userRoutes = require("./routes/UserDetail");
+app.use("/api/user", userRoutes);
+
 // DB Health Check
 app.get('/health', async (req, res) => {
     try {
