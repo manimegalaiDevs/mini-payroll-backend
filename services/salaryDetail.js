@@ -2,15 +2,28 @@ const db = require('../config/db');
 
 // Create salary record
 const createSalary = async (data) => {
-    if (data.is_current) {
-        // Mark all previous salary records for same staff as false
-        await db('salary_detail')
-            .where({ staff_detail_id: data.staff_detail_id })
-            .update({ is_current: false });
-    }
 
-    const [inserted] = await db('salary_detail').insert(data).returning('*');
-    return inserted;
+    return await db.transaction(async (trx) => {
+
+        if (data.is_current) {
+            // Make previous salary non-current
+            await trx('salary_detail')
+                .where({
+                    staff_detail_id: data.staff_detail_id,
+                    is_current: true
+                })
+                .update({ is_current: false });
+        }
+        const [id] = await trx('salary_detail')
+            .insert(data)
+            .returning('id');
+
+        const created = await trx('salary_detail')
+            .where({ id })
+            .first();
+
+        return created;
+    });
 };
 
 // Get salary by staff ID
@@ -22,11 +35,14 @@ const getSalaryByStaff = async (staff_detail_id) => {
 
 // Update salary
 const updateSalary = async (id, data) => {
-    const updated = await db('salary_detail')
+    const updatedRows = await db('salary_detail')
         .where({ id })
-        .update({ ...data, updated_at: db.fn.now() })
-        .returning('*');
-    return updated[0];
+        .update(data);
+
+    if (updatedRows === 0) {
+        throw new Error('Salary record not found');
+    }
+    return { id, ...data };
 };
 
 // Delete salary record
